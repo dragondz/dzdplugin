@@ -17,7 +17,7 @@ $plugin['name'] = 'dzd_multicat_creator';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 1;
 
-$plugin['version'] = '0.1';
+$plugin['version'] = '0.2';
 $plugin['author'] = 'Messaoudi Rabah (Dragondz)';
 $plugin['author_uri'] = 'http://info.ix-dz.com';
 $plugin['description'] = 'Add multiples categories at once';
@@ -49,19 +49,28 @@ if (!defined('txpinterface'))
         @include_once('zem_tpl.php');
 
 # --- BEGIN PLUGIN CODE ---
+//<?php
+
+
 register_callback('dzd_multicat_creator', 'category', '');
 
 function dzd_multicat_creator($event, $step) {
    global $sitename, $prefs, $thisarticle, $txp_user, $txpcfg;
 
-    $myarea = '';
+  $myarea = '';
 	$confirm = '';
 
     if (ps('dzdsend'))
     {
-        $myarea = ps('cat_content');
-		$confirm = '<input type="submit" name="dzdconfirm" value="Create categories" />';
-		$up_form = <<<uform1
+			$myarea = ps('cat_content');
+			$confirm = '<input type="submit" name="dzdconfirm" value="Create categories" />';
+			$up_form = <<<uform1
+<script>
+$(document).ready(function() {
+$('div.txp-layout').after('<form method="post" action="index.php?event=category" id="dzd_form" class="toggle" style="text-align:center;" name="dzd_form" ><input type="hidden" value="category" name="event" /><textarea name="cat_content" rows="10" cols="100">$myarea</textarea><br /><input type="submit" name="dzdconfirm" value="Create categories" /></form>');
+$('div.txp-layout').after('<h3 class="plain lever" style="padding-top: 10px;text-align:center;"><a href="#dzd_form" id="dzdlink">Multiple category creator</a></h3>');
+});
+</script>
 <h3 class="plain lever" style="padding-top: 10px;text-align:center;"><a href="#dzd_form">Multiple category creator</a></h3>
 <form method="post" action="index.php?event=category" id="dzd_form" class="toggle" style="text-align:center;" name="dzd_form" >
 <input type="hidden" value="category" name="event" />
@@ -73,14 +82,16 @@ uform1;
     } else {
 
     $up_form = <<<uform1
-<h3 class="plain lever" style="padding-top: 10px;text-align:center;"><a href="#dzd_form">Multiple category creator</a></h3>
-<form method="post" action="index.php?event=category" id="dzd_form" class="toggle" style="display:none;text-align:center;" name="dzd_form" >
-<input type="hidden" value="category" name="event" />
-<textarea name="cat_content" rows="10" cols="100"></textarea><br />
-<input type="submit" name="dzdsend" value="Send" />
-</form>
+<script>
+$(document).ready(function() {
+$('div.txp-layout').after('<form method="post" action="index.php?event=category" id="dzd_form" class="toggle" style="display:none;text-align:center;" name="dzd_form" ><input type="hidden" value="category" name="event" /><textarea name="cat_content" rows="10" cols="100"></textarea><br /><input type="submit" name="dzdsend" value="Send" /></form>');
+$('div.txp-layout').after('<h3 class="plain lever" style="padding-top: 10px;text-align:center;"><a href="#dzd_form" id="dzdlink">Multiple category creator</a></h3>');
+$('#dzdlink').click(function() {
+$('form#dzd_form').toggle();
+});
+});
+</script>
 uform1;
-
 	}
 	
 	if (ps('dzdconfirm'))
@@ -89,42 +100,39 @@ uform1;
 	}
 	
 
-    if ($myarea <>'')
-    {
-	$up_form .='<table style="text-align: center;width:50%;" ><tr><th>Name</th><th>Title</th><th>Parent</th><th>Type</th></tr>';
-    $data_array = explode("\n", $myarea);
-    foreach($data_array as $key=>$value)
-    {
-       //  becareful to check the value for  empty line 
-       $value=trim($value);
-	   
-	   $up_form .='<tr>';
-       if  (!empty($value))
-       {
-            $array1 = explode("\t", $data_array[$key]);
-            foreach($array1 as $key1=>$value1)
-            {
-                $value1=trim($value1);
-                $myarray[$key][$key1] = $value1;
-				$up_form .= '<td>'.$value1.'</td>';
-            }
-			if (ps('dzdconfirm'))
+  if ($myarea <>'')
+  {
+		$up_form .='<table style="text-align: center;width:50%;" ><tr><th>Name</th><th>Title</th><th>Parent</th><th>Type</th></tr>';
+			$data_array = explode("\n", $myarea);
+			foreach($data_array as $key=>$value)
 			{
-				$mes = my_category_create($myarray[$key][3], $myarray[$key][0], $myarray[$key][2], $myarray[$key][1]);
-				$up_form .='<td>'.$mes.'</td>';
+				 //  becareful to check the value for  empty line 
+				 $value=trim($value);
+			 
+			 $up_form .='<tr>';
+				 if  (!empty($value))
+				 {
+							$array1 = explode("\t", $data_array[$key]);
+							foreach($array1 as $key1=>$value1)
+							{
+									$value1=trim($value1);
+									$myarray[$key][$key1] = $value1;
+					$up_form .= '<td>'.$value1.'</td>';
+							}
+				if (ps('dzdconfirm'))
+				{
+					$mes = my_category_create($myarray[$key][3], $myarray[$key][0], $myarray[$key][2], $myarray[$key][1]);
+					$up_form .='<td>'.$mes.'</td>';
+				}
+				 }
+			 $up_form .='</tr>';
 			}
-       }
-	   $up_form .='</tr>';
-    }
-	$up_form .= '</table>';
-	}
+		$up_form .= '</table>';
 
-	// new DOM function available in 4.0.4
-	if (is_callable('dom_attach')) {
-		// article-main is the middle column
-		echo dom_attach('category_container', $up_form,'','div','dzdmulti');
-		return;
 	}
+	
+	echo $up_form;
+
 }
 
 function my_category_create($event,$title1,$papa='root',$ti)
