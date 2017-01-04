@@ -83,6 +83,7 @@ function dzd_mailverif() {
 	global $zem_contact_values;
 	$set = 'timestamp=NOW()';
         $uid = md5(uniqid(rand(),true));
+	$values = doSlash($zem_contact_values);
         $mytitle = stripSpace($zem_contact_values[nom], 1);
         $vowels = array(" ", ",", ".");
         $onlynumbers = str_replace($vowels, "", $zem_contact_values[montant]);
