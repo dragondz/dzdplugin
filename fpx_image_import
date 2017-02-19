@@ -1,0 +1,684 @@
+<?global $path_to_site;
+global $img_dir;
+global $event,$step;
+
+define("IMIMPORTPATH", $path_to_site.'/'.$img_dir.'/import/');
+
+extract(get_prefs());
+global $fpx_image_thumb;
+global $fpx_image_thumbcrop;
+global $fpx_image_thumbx;
+global $fpx_image_thumby;
+global $fpx_image_thumbhint;
+global $fpx_image_thumbgreyhint;
+global $fpx_image_resize;
+global $fpx_image_sharpen;
+global $fpx_image_imgx;
+global $fpx_image_imgy;
+global $fpx_image_importinfo;
+global $fpx_image_filenameasalt;
+
+/*DEBUG*/ global $debug;
+/*DEBUG*/ $debug = '0';
+/*DEBUG*/ if ($debug=='1'){ ini_set('display_errors', 1); error_reporting(E_ALL); }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: fpx_image_import plugin is active. These are the settings:<br />"; }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: settings: <b> fpx_image_thumb: ".$fpx_image_thumb." | fpx_image_thumbcrop: ".$fpx_image_thumbcrop." | fpx_image_thumbx: ".$fpx_image_thumbx." | fpx_image_thumby: ".$fpx_image_thumby." | fpx_image_thumbhint: ".$fpx_image_thumbhint." | fpx_image_thumbgreyhint: ".$fpx_image_thumbgreyhint." | fpx_image_resize: ".$fpx_image_resize." | fpx_image_sharpen: ".$fpx_image_sharpen." | fpx_image_imgx: ".$fpx_image_imgx." | fpx_image_imgy: ".$fpx_image_imgy." | fpx_image_importinfo: ".$fpx_image_importinfo." | fpx_image_filenameasalt: ".$fpx_image_filenameasalt."</b><br />"; }
+
+// Plugin code goes here.  No need to escape quotes.
+if (@txpinterface == 'admin') {
+  // Add a new tab under 'extensions' called 'image import', for the 'fpxii' event
+  add_privs('fpxii');
+  register_tab("extensions", "fpxii", "image import");
+
+  // 'fpx_image_import_list' will be called to handle the 'image' event
+  register_callback("fpx_image_import_list", "image");
+  register_callback("fpxii_import", "image", "fpxii_import");
+
+  // register preferences
+  register_callback("fpx_image_import_prefs", "fpxii");
+
+}
+
+function fpx_image_import_prefs($event, $step)
+{
+    global $fpx_image_thumb, $fpx_image_thumbcrop,
+      $fpx_image_thumbx, $fpx_image_thumby, $fpx_image_thumbhint, $fpx_image_thumbgreyhint,
+      $fpx_image_resize, $fpx_image_sharpen,
+      $fpx_image_imgx, $fpx_image_imgy,
+      $fpx_image_importinfo, $fpx_image_filenameasalt;
+
+    include_once(txpath . '/include/txp_prefs.php');
+    if (ps("save")) {
+        prefs_save();
+        header("Location: index.php?event=fpxii");
+    }
+
+    $importinfo= array('None'=>gTxt(''));
+    $importinfo['EXIF'] = 'exif';
+    $importinfo['IPTC'] = 'iptc';
+
+    pagetop("Image Import");
+
+    fpx_prepare_prefs();
+
+		fpx_prepare_one_pref('fpx_image_thumb', '1');  // create thumbnail? (0 disable / 1 enable)
+																					 // if a file thumb-imagename.ext is found the thumbnail will still be imported
+		fpx_prepare_one_pref('fpx_image_thumbcrop', '0');  // crop thumbnail
+		fpx_prepare_one_pref('fpx_image_thumbx', 100);  // width of thumbnail (maybe 0 if fpx_image_thumby is >0 and crop disabled)
+		fpx_prepare_one_pref('fpx_image_thumby', 0);  // height of thumbnail (maybe 0 if fpx_image_thumbx is >0 and crop disabled)
+		fpx_prepare_one_pref('fpx_image_thumbhint', '0');  // hint (small looking glass icon) in thumbnail (0 disable / 1 enable)
+		fpx_prepare_one_pref('fpx_image_thumbgreyhint', '0');  // grey bar at bottom of thumbnail, use it with hint (0 disable / 1 enable)
+				// resize image
+		fpx_prepare_one_pref('fpx_image_resize', '0');  // resize image? (0 disable / 1 enable)
+		fpx_prepare_one_pref('fpx_image_sharpen', '0');  // claims to result in better quality resize.
+		fpx_prepare_one_pref('fpx_image_imgx', 640);  // width to resize image to (maybe 0 if fpx_image_imgy >0)
+		fpx_prepare_one_pref('fpx_image_imgy', 480);  // height to resize image to (maybe 0 if fpx_image_imgx >0)
+				// get additional information
+		fpx_prepare_one_pref('fpx_image_importinfo', 'none');  // import meta info into caption (exif / iptc / none)
+		fpx_prepare_one_pref('fpx_image_filenameasalt', '0');  // use filename (without extension) as alt-text (0 disable / 1 enable)
+
+    echo  form(startTable("list").
+    tr(tdcs(hed("Image Import Preferences",1),3)).
+    tr(tda(gTxt("Create thumbnail"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_thumb",$fpx_image_thumb)).
+			 td("If a file thumb-imagename.ext is found the thumbnail will still be imported.")).
+    tr(tda(gTxt("Crop thumbnail"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_thumbcrop",$fpx_image_thumbcrop)).
+			 td("The thumbnail shall be cropped")).
+    tr(tda(gTxt("Thumbnail width"), ' style="text-align:right;vertical-align:middle"').
+      td(text_input("fpx_image_thumbx",$fpx_image_thumbx,'20')).
+			 td("May be 0 if thumbnail height is >0 and crop disabled")).
+    tr(tda(gTxt("Thumbnail height"), ' style="text-align:right;vertical-align:middle"').
+      td(text_input("fpx_image_thumby",$fpx_image_thumby,'20')).
+			 td("May be 0 if thumbnail width is >0 and crop disabled")).
+    tr(tda(gTxt("Thumbnail with hint"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_thumbhint",$fpx_image_thumbhint)).
+			 td("Small looking glass icon in thumbnail")).
+    tr(tda(gTxt("Grey bar at bottom of thumb"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_thumbgreyhint",$fpx_image_thumbgreyhint)).
+			 td("Grey bar at bottom of thumbnail, use it with hint")).
+    tr(tda(gTxt("Resize image"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_resize",$fpx_image_resize)).
+			 td("Resize the image (what a surprise).")).
+    tr(tda(gTxt("Sharpen image"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_sharpen",$fpx_image_sharpen)).
+			 td("Claims to result in better quality resize.")).
+    tr(tda(gTxt("Resize to width"), ' style="text-align:right;vertical-align:middle"').
+      td(text_input("fpx_image_imgx",$fpx_image_imgx,'20')).
+			 td("Width to resize image to (maybe 0 if height >0)")).
+    tr(tda(gTxt("Resize to height"), ' style="text-align:right;vertical-align:middle"').
+      td(text_input("fpx_image_imgy",$fpx_image_imgy,'20')).
+			 td("Height to resize image to (maybe 0 if width >0)")).
+    tr(tda(gTxt("Import additional info"), ' style="text-align:right;vertical-align:middle"').
+      td(selectInput("fpx_image_importinfo", $importinfo, $fpx_image_importinfo)).
+			 td("Import meta info into caption")).
+    tr(tda(gTxt("Filename as alt-text"), ' style="text-align:right;vertical-align:middle"').
+      td(yesnoradio("fpx_image_filenameasalt",$fpx_image_filenameasalt)).
+			 td("Use filename without extension as alt-text")).
+    tr(tda(fInput("submit","save",gTxt("save_button"),"publish").eInput("fpxii").sInput('saveprefs'), " colspan=\"3\" class=\"noline\"")).
+    endtable());
+}
+
+function fpx_image_import_list($event, $step) {
+  global $path_to_site, $img_dir, $debug;
+
+	$msg = "";
+
+	if ( !file_exists(IMIMPORTPATH) && !mkdir(IMIMPORTPATH) )
+	{
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: create ".IMIMPORTPATH."<br />"; }
+			$msg .= "Could not create import directory. Please create <b>".IMIMPORTPATH."</b> and make sure that the permissions are correct<br/ >";
+	} //if
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: chmod ".IMIMPORTPATH."<br />"; }
+	if ( !@is_writeable(IMIMPORTPATH) && !chmod (IMIMPORTPATH, 0777) )
+	{
+			$msg .= "Could not change permissions of import directory. Please make sure <b>".IMIMPORTPATH."</b> is writable<br />";
+	} //if
+
+	echo '<form action="index.php" method="post" name="imagelistform" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">';
+
+	echo startTable("list"),
+    tr(tdcs(hed("Import Images",1), 3)).
+		((!empty($msg))?tr(tdcs(hed($msg,4), 3)):tr(tdcs(hed("Select folders or files to import.",4), 3))).
+		tr(tdcs("Files and folders from " . $img_dir . "/import are shown below.", 3)).
+		tr(
+      hCell(gTxt('name')).
+      hCell(gTxt('file')).
+      hCell(gTxt('tab_import')));
+
+  // get directory
+  if ( @is_dir(IMIMPORTPATH) && $handle = @opendir(IMIMPORTPATH) )
+  {
+      while ( $file = readdir ($handle))
+      {
+          if ( $file != "." && $file != ".." )
+          {
+              if (@is_dir(IMIMPORTPATH.$file))
+              {
+                $handlesub = @opendir(IMIMPORTPATH.$file);
+                  echo tr(td(strong($file),200).td("&nbsp;",200).tda(fInput('checkbox','selected[]',$file,'','','','','',$file)));
+                  // process files in dir
+                  while ($filesub = readdir ($handlesub))
+                  {
+                      // import images from folder to category
+                      if ( $filesub != "." && $filesub != ".." )
+                      {
+                          if ( @is_file(IMIMPORTPATH.$file."/".$filesub) && @is_readable(IMIMPORTPATH.$file."/".$filesub) )
+                          {
+                              $helpfileext = explode('.',$filesub);
+                              $fileextsub = strtolower($helpfileext[count($helpfileext)-1]);
+                              $prefixsub = substr($filesub, 0, 6);
+                              if ( ( $fileextsub == "jpeg" || $fileextsub == "jpg" || $fileextsub == "png" || $fileextsub == "gif" ) && $prefixsub != "thumb-" )
+                              {
+                                  echo tr(td("&nbsp;",200).td($filesub,200).tda("&nbsp;"));
+                              } //if
+                          } //if
+                      } //if
+                  } //while
+                  @closedir($handlesub);
+              }
+              else
+              {
+                echo tr(td($file,200).td("&nbsp;",200).tda(fInput('checkbox','selected[]',$file,'','','','','',$file)));
+              }
+          }
+      }
+      @closedir($handle);
+  }
+  echo tr(tdcs(eInput("image").sInput('fpxii_import').fInput('submit','fpxii',gTxt('tab_import'),'smallerbox','import',''),3));
+
+  echo endTable()."</form>";
+}
+
+function fpxii_import()
+{
+	$success=true;
+
+	// check sanity of preferences
+	$warnings = fpxii_preflight_checks();
+
+  $num = 0;
+  $sel = ps("selected");
+  foreach ($sel as $file)
+  {
+    if (@is_dir(IMIMPORTPATH.$file))
+    {
+				$handlesub = @opendir(IMIMPORTPATH.$file);
+        // process files in dir
+        while ($filesub = readdir ($handlesub))
+        {
+            // import images from folder to category
+            if ( $filesub != "." && $filesub != ".." )
+            {
+                if ( @is_file(IMIMPORTPATH.$file."/".$filesub) && @is_readable(IMIMPORTPATH.$file."/".$filesub) )
+                {
+                    $helpfileext = explode('.',$filesub);
+                    $fileextsub = strtolower($helpfileext[count($helpfileext)-1]);
+                    $prefixsub = substr($filesub, 0, 6);
+                    if ( ( $fileextsub == "jpeg" || $fileextsub == "jpg" || $fileextsub == "png" || $fileextsub == "gif" ) && $prefixsub != "thumb-" )
+                    {
+                      // import file in category $file
+                      if (fpx_import($filesub, $file))
+											{
+													$num++;
+											}
+											else
+											{
+													$success = false;
+											}
+                    } //if
+                } //if
+            } //if
+        } //while
+        @closedir($handlesub);
+    }
+    else
+    {
+      // import file $file
+			if (fpx_import($file, ''))
+			{
+				$num++;
+			}
+			else
+			{
+				$success = false;
+			}
+			$num++;
+    }
+  }
+  // now redirect to image without step so the list is refreshed.
+	if ($success and !$warnings) {
+			header("Location: index.php?event=image");
+	}
+	else
+	{
+			print "There were errors importing some images. $num images were imported<br/>";
+	}
+}
+
+function fpxii_preflight_checks()
+{
+/*DEBUG*/ global $debug;
+    global $path_to_site, $img_dir;
+
+/*DEBUG*/ if ($debug=='1'){
+/*DEBUG*/ global $aba_image_thumb, $aba_image_thumbcrop, $aba_image_thumbx, $aba_image_thumby, $aba_image_thumbhint, $aba_image_thumbgreyhint, $aba_image_resize, $aba_image_sharpen, $aba_image_imgx, $aba_image_imgy, $aba_image_importinfo, $aba_image_filenameasalt;
+/*DEBUG*/ } else {
+    global $fpx_image_thumb, $fpx_image_resize, $fpx_image_imgx, $fpx_image_imgy, $fpx_image_thumbx, $fpx_image_thumby, $fpx_image_importinfo;
+
+		$warnings = false;
+/*DEBUG*/ }
+
+    if ( !function_exists('gd_info') )
+    {
+        $fpx_image_thumb= '0';
+        $fpx_image_resize   = '0';
+        print('GD is not present - image manipulation disabled<br />');
+				$warnings = true;
+    } //if
+
+    if ( strtolower($fpx_image_importinfo) == 'iptc' && !function_exists('iptcparse') )
+    {
+        print('IPTC is not supported by your PHP, IPTC parsing disabled<br />');
+        $fpx_image_importinfo = 'none';
+				$warnings = true;
+    } //if
+
+    if ( strtolower($fpx_image_importinfo) == 'exif' && !function_exists('exif_read_data') )
+    {
+        print('EXIF is not supported by your PHP, EXIF parsing disabled<br />');
+        $fpx_image_importinfo = 'none';
+				$warnings = true;
+    } //if
+
+    if ( $fpx_image_resize=='1' && $fpx_image_imgx=='0' && $fpx_image_imgy=='0' )
+    {
+        print('You should make up your mind, resize to 0x0 is highly illogical. Resizing disabled<br />');
+        $fpx_image_resize=0;
+				$warnings = true;
+    } //if
+
+    if ( $fpx_image_thumb=='1' && $fpx_image_thumbx=='0' && $fpx_image_thumby=='0' )
+    {
+        print('You should make up your mind, thumbnailing to 0x0 is highly illogical. Thumbnailing disabled<br />');
+        $fpx_image_thumb=0;
+				$warnings = true;
+    } //if
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: safe_mode: ".ini_get('safe_mode')."<br />"; }
+    if(!ini_get('safe_mode'))
+    {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: disable timeout<br />"; }
+        set_time_limit(0);
+    } //if
+		return $warnings;
+}
+
+function fpx_prepare_prefs()
+{
+  global $fpx_image_thumb, $fpx_image_thumbcrop,
+    $fpx_image_thumbx,
+    $fpx_image_thumby,
+    $fpx_image_thumbhint,
+    $fpx_image_thumbgreyhint,
+    $fpx_image_resize,
+    $fpx_image_sharpen,
+    $fpx_image_imgx,
+    $fpx_image_imgy,
+    $fpx_image_importinfo,
+    $fpx_image_filenameasalt;
+
+  fpx_prepare_one_pref('fpx_image_thumb', '1');  // create thumbnail? (0 disable / 1 enable)
+                                         // if a file thumb-imagename.ext is found the thumbnail will still be imported
+  fpx_prepare_one_pref('fpx_image_thumbcrop', '0');  // crop thumbnail
+  fpx_prepare_one_pref('fpx_image_thumbx', 100);  // width of thumbnail (maybe 0 if fpx_image_thumby is >0 and crop disabled)
+  fpx_prepare_one_pref('fpx_image_thumby', 0);  // height of thumbnail (maybe 0 if fpx_image_thumbx is >0 and crop disabled)
+  fpx_prepare_one_pref('fpx_image_thumbhint', '0');  // hint (small looking glass icon) in thumbnail (0 disable / 1 enable)
+  fpx_prepare_one_pref('fpx_image_thumbgreyhint', '0');  // grey bar at bottom of thumbnail, use it with hint (0 disable / 1 enable)
+      // resize image
+  fpx_prepare_one_pref('fpx_image_resize', '0');  // resize image? (0 disable / 1 enable)
+  fpx_prepare_one_pref('fpx_image_sharpen', '0');  // claims to result in better quality resize.
+  fpx_prepare_one_pref('fpx_image_imgx', 640);  // width to resize image to (maybe 0 if fpx_image_imgy >0)
+  fpx_prepare_one_pref('fpx_image_imgy', 480);  // height to resize image to (maybe 0 if fpx_image_imgx >0)
+      // get additional information
+  fpx_prepare_one_pref('fpx_image_importinfo', 'none');  // import meta info into caption (exif / iptc / none)
+  fpx_prepare_one_pref('fpx_image_filenameasalt', '0');  // use filename (without extension) as alt-text (0 disable / 1 enable)
+}
+
+function fpx_prepare_one_pref($pref, $default)
+{
+  global ${$pref};
+  if (!isset(${$pref}))
+  {
+    ${$pref} = $default;
+    $val = "name='$pref', val='${$pref}', prefs_id='1'";
+    $rs = safe_insert('txp_prefs', $val);
+    if (!$rs)
+    {
+      // echo "Pref $pref not saved: $val<br/>";
+    }
+  }
+}
+
+function fpx_gd_works($ext)
+{
+/*DEBUG*/ global $debug;
+    switch($ext)
+    {
+        case '.jpg':
+        {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: check for imagecreatefromjpeg<br />"; }
+						if ( !function_exists('imagecreatefromjpeg') )
+            {
+								print 'your gd does not support JPEG<br />';
+								return false;
+            } //if
+        } //case
+        break;
+				case '.png':
+				{
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: check for imagecreatefrompng<br />"; }
+					if ( !function_exists('imagecreatefrompng') )
+					{
+							print 'your gd does not support PNG<br />';
+							return false;
+					}//if
+				} //case
+				break;
+				case '.gif':
+				{
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: check for imagecreatefromgif<br />"; }
+						if ( !function_exists('imagecreatefromgif') )
+            {
+								print 'your gd does not support GIF<br />';
+								return false;
+            } //if
+				} //case
+    } //switch
+    return true;
+} //function works
+
+
+function fpx_import($filename, $category)
+{
+		$hasError = false;
+
+/*DEBUG*/ global $debug;
+    global $extensions, $txp_user, $txpcfg;
+    global $fpx_image_thumb, $fpx_image_thumbcrop, $fpx_image_thumbx, $fpx_image_thumby, $fpx_image_thumbhint, $fpx_image_thumbgreyhint, $fpx_image_resize, $fpx_image_sharpen, $fpx_image_imgx, $fpx_image_imgy, $fpx_image_importinfo, $fpx_image_filenameasalt, $DB;
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: start importing function<br />"; }
+    $catname = "";
+    if ( !empty($category) )
+    {
+        $cattitle = doSlash($category);
+
+        //Prevent non url chars on category names
+		include_once(txpath .'/lib/classTextile.php');
+        $textile = new Textile();
+        $catname = utf8_encode($category);
+        $catname = dumbDown($textile->TextileThis(trim(doSlash($catname)), 1));
+        $catname = preg_replace("/[^[:alnum:]\-_]/", "", str_replace(" ", "-", $catname));
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG: category: ".$catname."<br />"; }
+
+        if ( !empty($catname) )
+        {
+            $check = safe_field("name", "txp_category", "name='$catname' and type='image'");
+            if ( !$check )
+            {
+                $q = safe_insert("txp_category", "name='$catname', title='$cattitle', type='image', parent='root'");
+                rebuild_tree('root', 1, 'image');
+            }
+        }
+        $imgfilename = IMIMPORTPATH.$category."/".$filename;
+        $imgthumbfilename = IMIMPORTPATH.$category."/thumb-".$filename;
+    }
+    else
+    {
+        $imgfilename = IMIMPORTPATH.$filename;
+        $imgthumbfilename = IMIMPORTPATH."thumb-".$filename;
+    }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): imgfilename: ".$imgfilename."<br />"; }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): imgthumbfilename: ".$imgthumbfilename."<br />"; }
+
+    if ( !list($x, $y, $extension) = @getimagesize($imgfilename) );
+    {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(Extension: $extension <br />"; }
+        $ext = $extensions[$extension];
+        $imagename = utf8_encode(substr($filename, 0, strrpos($filename, '.')));
+        $alt = $imagename;
+        $imagename .= $ext;
+        $name2db = doSlash($imagename);
+        $caption='';
+
+        switch(strtolower($fpx_image_importinfo))
+        {
+            case 'exif':
+            {
+                if ( $ext=='.jpg' )
+                {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): read exif (".$ext."<br />"; }
+                    $exif_info = exif_read_data($imgfilename, 0, TRUE);
+                    if ( @is_array($exif_info) && !empty($exif_info['COMPUTED']['UserComment']) )
+                    {
+                        $caption = $exif_info['COMPUTED']['UserComment'];
+                        $caption = utf8_encode($caption);
+                        $caption = doSlash($caption);
+                    }
+                }
+            }
+            break;
+            case 'iptc':
+            {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): read iptc<br />"; }
+                @getimagesize($imgfilename, $info);
+                if ( !empty($info["APP13"]) )
+                {
+                    $iptc_info = iptcparse($info["APP13"]);
+                    if ( @is_array($iptc_info) && !empty($iptc_info["2#120"][0]) )
+                    {
+                        $caption = $iptc_info["2#120"][0];
+                        $caption = utf8_encode($caption);
+                        $caption = doSlash($caption);
+                    }
+                }
+            }
+            break;
+        }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): caption:".$caption."<br />"; }
+
+        if ( $fpx_image_filenameasalt == '1' )
+        {
+            $alt = str_replace("_"," ",$alt);
+            $alt = doSlash($alt);
+        }
+        else
+        {
+            $alt='';
+        }
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): alt: ".$alt."<br />"; }
+
+        $rs = safe_insert("txp_image",
+        "w= '$x',
+         h= '$y',
+         category = '$catname',
+         ext  = '$ext',
+         `name`   = '$name2db',
+         `date`   = now(),
+         caption  = '$caption',
+         alt  = '$alt',
+         author   = '$txp_user'");
+         $id = mysqli_insert_id($DB->link);
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): DB insert id ".$id." (".$x."x".$y.") name: ".$name2db."<br />"; }
+
+        if ( !$rs )
+        {
+            print('There was a problem saving image data to the database<br />');
+						$hasError = true;
+        }
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): before resize=".$fxp_image_resize." ext:".$ext."<br />"; }
+        if ( $fpx_image_resize == '1' && $fpx_image_imgx<$x && $fpx_image_imgy<$y && fpx_gd_works($ext) )
+        {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): start resizing<br />"; }
+            $t = new wet_thumb();
+
+            // we want the aspect ratio to be correct
+            if ( $fpx_image_imgx=='0' )
+            {
+                $newy = $fpx_image_imgy;
+                $newx = floor ($fpx_image_imgy * $x / $y);
+
+            }
+            if ( $fpx_image_imgy=='0' )
+            {
+                $newx = $fpx_image_imgx;
+                $newy = floor ($fpx_image_imgx * $y / $x);
+            }
+            if ( $fpx_image_imgx!='0' && $fpx_image_imgy!='0' )
+            {
+                if ( $x<$y )
+                {
+                    $newx = floor($newy*$x/$y);
+                    $newy = $fpx_image_imgy;
+                }
+                else
+                {
+                $newx = $fpx_image_imgx;
+                $newy = floor($newx*$y/$x);
+                }
+            }
+
+            $t->width = $newx;
+            $t->height = $newy;
+            $t->sharpen = ($fpx_image_sharpen=='1');
+            $t->crop = false;
+            $t->hint = false;
+            $t->extrapolate = false;
+            $t->addgreytohint = false;
+            if ( !$t->write($imgfilename, IMPATH.$id.$ext) )
+            {
+                print('resized image <b>'.$id.'</b> not saved!<br />');
+								$hasError = true;
+            }
+
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): resize ".$imgfilename." to ".$newx."x".$newy." (".$fxp_image_imgx."x".$fxp_image_imgy.") -> ".$id.$ext."<br />"; }
+
+            if ( list($x, $y, $extension) = @getimagesize(IMPATH.$id.$ext) )
+            {
+
+                $rs = safe_update("txp_image",
+                "w= '$x',
+                 h= '$y',
+                 `date`   = now(),
+                 id   = '$id'",
+                 "id = '$id'");
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): DB update ".$id." (".$x."x".$y.")<br />"; }
+                if ( !$rs )
+                {
+                    print('There was a problem saving image data to the database<br />');
+										$hasError = true;
+                }
+            }
+            else
+            {
+                print("There was a problem reading the resized image (and I have no clue what). Check everything...<br />");
+								$hasError = true;
+            }
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): end resizing<br />"; }
+        }
+        else
+        {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): copy ".$imgfilename." -> ".$id.$ext."<br />"; }
+            copy($imgfilename, IMPATH.$id.$ext);
+        }
+
+        if ( file_exists($imgthumbfilename) )
+        {
+            list(,,$extension) = getimagesize($imgthumbfilename);
+
+            if ( $extensions[$extension] )
+            {
+                $extt = $extensions[$extension];
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): ext:".$ext." thumbext: ".$extt."<br />"; }
+                if ( $extt!=$ext )
+                {
+                    print ('textpattern currently only understands thumbnails that do have the same image format. Sorry, your thumbnail is not working.<br />');
+										$hasError = true;
+                }
+                else
+                {
+                    $newpath = IMPATH.$id.'t'.$extt;
+                    safe_update("txp_image", "thumbnail = '1'", "id = '$id'");
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): DB update thumb ".$id."<br />"; }
+                    @copy($imgthumbfilename, $newpath);
+                    if ( !@unlink($imgthumbfilename) )
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): copy ".$imgthumbfilename." -> ".$id.'t'.$extt."<br />"; }
+                    {
+                        print("Could not delete <b>".$imgthumbfilename."</b> - please delete it yourself to prevent reimporting.<br />");
+												$hasError = true;
+                    }
+                }
+            }
+        }
+        else
+        {
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): before thumb=".$fxp_image_thumb." ext:".$ext."<br />"; }
+						if ( $fpx_image_thumb=='1' && fpx_gd_works($ext) )
+						{
+		/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): start thumbnailing<br />"; }
+								$t = new txp_thumb($id);
+								if ( $fpx_image_thumbcrop=='0' )
+								{
+										if ( $fpx_image_thumbx=='0' )
+										{
+												$newx = floor ($fpx_image_thumby * $x / $y);
+												$newy = $fpx_image_thumby;
+										}
+										if ( $fpx_image_thumby=='0' )
+										{
+												$newx = $fpx_image_thumbx;
+												$newy = floor ($fpx_image_thumbx * $y / $x);
+										}
+										if ( $fpx_image_thumbx!='0' && $fpx_image_thumby!='0' )
+										{
+												if ( $x<$y )
+												{
+														$newx = floor($newy*$x/$y);
+														$newy = $fpx_image_thumby;
+												}
+												else
+												{
+														$newx = $fpx_image_thumbx;
+														$newy = floor($newx*$y/$x);
+												}
+										}
+										$t->width = $newx;
+										$t->height = $newy;
+		/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): thumbnail ".$imgfilename." to ".$newx."x".$newy." (".$fxp_image_thumbx."x". $fxp_image_thumby.") -> ".$id.$ext."<br />"; }
+								}
+								else
+								{
+										$t->width = $fpx_image_thumbx;
+										$t->height = $fpx_image_thumby;
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): thumbnail ".$imgfilename." to ".$fxp_image_thumbx."x". $fxp_image_thumby." -> ".$id.$ext."<br />"; }
+								}
+								$t->crop = ($fpx_image_thumbcrop=='1');
+								$t->hint = ($fpx_image_thumbhint=='1');
+								$t->addgreytohint = ($fpx_image_thumbgreyhint=='1');
+								$t->extrapolate = false;
+								if ( !$t->write() )
+								{
+										print('Thumbnail <b>'.$id.'</b> not saved!<br />');
+										$hasError = true;
+								}
+/*DEBUG*/ if ($debug=='1'){ echo "DEBUG(".file_exists($imgfilename)."): end thumbnailing<br />"; }
+						}
+        }
+    }
+		return !$hasError;
+} //function fpx_import
+
