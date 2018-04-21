@@ -42,46 +42,21 @@ $plugin['type'] = '0';
 // Plugin "flags" signal the presence of optional capabilities to the core plugin loader.
 // Use an appropriately OR-ed combination of these flags.
 // The four high-order bits 0xf000 are available for this plugin's private use
-if (!defined('PLUGIN_HAS_PREFS')) define('PLUGIN_HAS_PREFS', 0x0001); // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
-if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002); // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
+if (!defined('PLUGIN_HAS_PREFS')) {
+    define('PLUGIN_HAS_PREFS', 0x0001);
+} // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
+if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) {
+    define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002);
+} // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
 
 $plugin['flags'] = '0';
 
-// Plugin 'textpack' is optional. It provides i18n strings to be used in conjunction with gTxt().
-// Syntax:
-// ## arbitrary comment
-// #@event
-// #@language ISO-LANGUAGE-CODE
-// abc_string_name => Localized String
-
-/** Uncomment me, if you need a textpack
-$plugin['textpack'] = <<< EOT
-#@admin
-#@language en-gb
-abc_sample_string => Sample String
-abc_one_more => One more
-#@language de-de
-abc_sample_string => Beispieltext
-abc_one_more => Noch einer
-EOT;
-**/
-// End of textpack
-
-if (!defined('txpinterface'))
-        @include_once('zem_tpl.php');
-
-# --- BEGIN PLUGIN CODE ---
-$plugin['version'] = '0.2';
-$plugin['author'] = 'Messaoudi Rabah (Dragondz)';
-$plugin['author_uri'] = 'http://info.ix-dz.com/';
-$plugin['description'] = 'This plugin make a counter view of an article using a custom field countxx';
-
-$plugin['type'] = 0;
-
-@include_once('zem_tpl.php');
+if (!defined('txpinterface')) {
+    @include_once('zem_tpl.php');
+}
 
 if (0) {
-?>
+    ?>
 # --- BEGIN PLUGIN HELP ---
 
 h1. dzd_counter_view
@@ -107,73 +82,42 @@ That's all
 <?php
 }
 
-function dzd_counter_view($atts) {
+function dzd_counter_view($atts)
+{
+    global $prefs, $id, $thisarticle;
 
-	global $prefs, $id, $thisarticle;
+    extract(lAtts(array(
+            'custom_field' =>'countxx',
+            'category' => '',
+            'section' => '',
+            'force' => 0,
+        ), $atts));
 
-	extract(lAtts(array(
-                        'custom_field' =>'countxx',
-			'category' => '',
-			'section' => '',
-			'force' => 0,
-		),$atts));
+    $key = array_search($custom_field, $prefs);
+    if ($category<>'') {
+        $cat1 = (in_list($thisarticle['category1'], $category) ? 1 : 0) || (in_list($thisarticle['category2'], $category) ? 1 : 0);
+    } else {
+        $cat1 = 1;
+    }
+    if ($section<>'') {
+        $sec1 = in_list($thisarticle['section'], $section) ? 1 : 0;
+    } else {
+        $sec1 = 1;
+    }
 
-	$key = array_search($custom_field, $prefs);
-	if ($category<>'' ){
-		$cat1 = (in_list($thisarticle['category1'], $category) ? 1 : 0) || (in_list($thisarticle['category2'], $category) ? 1 : 0);
-		} else {
-		$cat1 = 1;
-	}
-	if ($section<>'' ){
-		$sec1 = in_list($thisarticle['section'], $section) ? 1 : 0;
-	} else {
-		$sec1 = 1;
-	}
+    if (($key<>"") && $cat1 && $sec1) {
+        $key = str_replace("_set", "", $key);
 
-	if (($key<>"") && $cat1 && $sec1) {
-
-	        $key = str_replace("_set", "", $key);
-
-		if (is_numeric($thisarticle[$custom_field]))
-		{
-			$cal = $thisarticle[$custom_field]+1;
-			$updated = safe_update("textpattern",$key."='".doSlash($cal)."'","ID='".doSlash($id)."'");
-		} elseif ($force) {
-                        $cal = '0';
-			$updated = safe_update("textpattern",$key."='".doSlash($cal)."'","ID='".doSlash($id)."'");
-		}
-	}
-
+        if (is_numeric($thisarticle[$custom_field])) {
+            $cal = $thisarticle[$custom_field]+1;
+            $updated = safe_update("textpattern", $key."='".doSlash($cal)."'", "ID='".doSlash($id)."'");
+        } elseif ($force) {
+            $cal = '0';
+            $updated = safe_update("textpattern", $key."='".doSlash($cal)."'", "ID='".doSlash($id)."'");
+        }
+    }
 }
 
 # --- END PLUGIN CODE ---
-if (0) {
-?>
-<!--
-# --- BEGIN PLUGIN HELP ---
-<p>
-h1. dzd_counter_view</p>
-	<p>This plugin is used to count the number of articles views<br />
 
-To work it need to name a custom field<br />
-
-and put a numeric value in it ( 0 or what you want )<br />
-
-then you put : &#60;txp:dzd&#95;counter&#95;view /&#62; in an article form<br />
-
-To display a counter just output the customfield value like that : &#60;txp:custom&#95;field name&#61;&#34;<span class="caps">YOURCUSTOMFIELD</span>&#34; /&#62;</p>
-	<p>-category = &#8220;categry1,category2,&#8230;&#8221;<br />
-
-bq. set category to restrict the count only for the desired categories, if not set all categories are available.</p>
-	<p>-section = &#8220;section1,section2,&#8230;&#8221;<br />
-
-bq. set section to restrict the count only for the desired sections, if not set all sections are available.</p>
-	<p>-force = &#8220;1&#8221; or &#8220;0&#8221; (default 0)<br />
-
-bq. this argument force to put 0 in custom_field &#8220;countxx&#8221; if it is not numeric or blank, default 0 not enforce the value.</p>
-	<p>That&#8217;s all</p>
-# --- END PLUGIN HELP ---
--->
-<?php
-}
 ?>
