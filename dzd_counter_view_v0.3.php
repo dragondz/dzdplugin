@@ -47,38 +47,8 @@ if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) define('PLUGIN_LIFECYCLE_NOTIFY', 0x000
 
 $plugin['flags'] = '0';
 
-// Plugin 'textpack' is optional. It provides i18n strings to be used in conjunction with gTxt().
-// Syntax:
-// ## arbitrary comment
-// #@event
-// #@language ISO-LANGUAGE-CODE
-// abc_string_name => Localized String
-
-/** Uncomment me, if you need a textpack
-$plugin['textpack'] = <<< EOT
-#@admin
-#@language en-gb
-abc_sample_string => Sample String
-abc_one_more => One more
-#@language de-de
-abc_sample_string => Beispieltext
-abc_one_more => Noch einer
-EOT;
-**/
-// End of textpack
-
 if (!defined('txpinterface'))
         @include_once('zem_tpl.php');
-
-# --- BEGIN PLUGIN CODE ---
-$plugin['version'] = '0.2';
-$plugin['author'] = 'Messaoudi Rabah (Dragondz)';
-$plugin['author_uri'] = 'http://info.ix-dz.com/';
-$plugin['description'] = 'This plugin make a counter view of an article using a custom field countxx';
-
-$plugin['type'] = 0;
-
-@include_once('zem_tpl.php');
 
 if (0) {
 ?>
@@ -147,33 +117,5 @@ function dzd_counter_view($atts) {
 }
 
 # --- END PLUGIN CODE ---
-if (0) {
-?>
-<!--
-# --- BEGIN PLUGIN HELP ---
-<p>
-h1. dzd_counter_view</p>
-	<p>This plugin is used to count the number of articles views<br />
 
-To work it need to name a custom field<br />
-
-and put a numeric value in it ( 0 or what you want )<br />
-
-then you put : &#60;txp:dzd&#95;counter&#95;view /&#62; in an article form<br />
-
-To display a counter just output the customfield value like that : &#60;txp:custom&#95;field name&#61;&#34;<span class="caps">YOURCUSTOMFIELD</span>&#34; /&#62;</p>
-	<p>-category = &#8220;categry1,category2,&#8230;&#8221;<br />
-
-bq. set category to restrict the count only for the desired categories, if not set all categories are available.</p>
-	<p>-section = &#8220;section1,section2,&#8230;&#8221;<br />
-
-bq. set section to restrict the count only for the desired sections, if not set all sections are available.</p>
-	<p>-force = &#8220;1&#8221; or &#8220;0&#8221; (default 0)<br />
-
-bq. this argument force to put 0 in custom_field &#8220;countxx&#8221; if it is not numeric or blank, default 0 not enforce the value.</p>
-	<p>That&#8217;s all</p>
-# --- END PLUGIN HELP ---
--->
-<?php
-}
 ?>
