@@ -42,16 +42,21 @@ $plugin['type'] = '0';
 // Plugin "flags" signal the presence of optional capabilities to the core plugin loader.
 // Use an appropriately OR-ed combination of these flags.
 // The four high-order bits 0xf000 are available for this plugin's private use
-if (!defined('PLUGIN_HAS_PREFS')) define('PLUGIN_HAS_PREFS', 0x0001); // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
-if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002); // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
+if (!defined('PLUGIN_HAS_PREFS')) {
+    define('PLUGIN_HAS_PREFS', 0x0001);
+} // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
+if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) {
+    define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002);
+} // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
 
 $plugin['flags'] = '0';
 
-if (!defined('txpinterface'))
-        @include_once('zem_tpl.php');
+if (!defined('txpinterface')) {
+    @include_once('zem_tpl.php');
+}
 
 if (0) {
-?>
+    ?>
 # --- BEGIN PLUGIN HELP ---
 
 h1. dzd_counter_view
@@ -77,43 +82,40 @@ That's all
 <?php
 }
 
-function dzd_counter_view($atts) {
+function dzd_counter_view($atts)
+{
+    global $prefs, $id, $thisarticle;
 
-	global $prefs, $id, $thisarticle;
+    extract(lAtts(array(
+            'custom_field' =>'countxx',
+            'category' => '',
+            'section' => '',
+            'force' => 0,
+        ), $atts));
 
-	extract(lAtts(array(
-                        'custom_field' =>'countxx',
-			'category' => '',
-			'section' => '',
-			'force' => 0,
-		),$atts));
+    $key = array_search($custom_field, $prefs);
+    if ($category<>'') {
+        $cat1 = (in_list($thisarticle['category1'], $category) ? 1 : 0) || (in_list($thisarticle['category2'], $category) ? 1 : 0);
+    } else {
+        $cat1 = 1;
+    }
+    if ($section<>'') {
+        $sec1 = in_list($thisarticle['section'], $section) ? 1 : 0;
+    } else {
+        $sec1 = 1;
+    }
 
-	$key = array_search($custom_field, $prefs);
-	if ($category<>'' ){
-		$cat1 = (in_list($thisarticle['category1'], $category) ? 1 : 0) || (in_list($thisarticle['category2'], $category) ? 1 : 0);
-		} else {
-		$cat1 = 1;
-	}
-	if ($section<>'' ){
-		$sec1 = in_list($thisarticle['section'], $section) ? 1 : 0;
-	} else {
-		$sec1 = 1;
-	}
+    if (($key<>"") && $cat1 && $sec1) {
+        $key = str_replace("_set", "", $key);
 
-	if (($key<>"") && $cat1 && $sec1) {
-
-	        $key = str_replace("_set", "", $key);
-
-		if (is_numeric($thisarticle[$custom_field]))
-		{
-			$cal = $thisarticle[$custom_field]+1;
-			$updated = safe_update("textpattern",$key."='".doSlash($cal)."'","ID='".doSlash($id)."'");
-		} elseif ($force) {
-                        $cal = '0';
-			$updated = safe_update("textpattern",$key."='".doSlash($cal)."'","ID='".doSlash($id)."'");
-		}
-	}
-
+        if (is_numeric($thisarticle[$custom_field])) {
+            $cal = $thisarticle[$custom_field]+1;
+            $updated = safe_update("textpattern", $key."='".doSlash($cal)."'", "ID='".doSlash($id)."'");
+        } elseif ($force) {
+            $cal = '0';
+            $updated = safe_update("textpattern", $key."='".doSlash($cal)."'", "ID='".doSlash($id)."'");
+        }
+    }
 }
 
 # --- END PLUGIN CODE ---
