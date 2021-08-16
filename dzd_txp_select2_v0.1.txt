@@ -1,0 +1,42 @@
+# Name: dzd_txp_select2 v0.1 
+# Type: Admin plugin
+# Add Select2 library to category admin tab
+# Author: Rabah (Dragondz)
+# URL: https://ix-dz.com
+# Recommended load order: 5
+
+# .....................................................................
+# This is a plugin for Textpattern CMS - http://textpattern.com/
+# To install: textpattern > admin > plugins
+# Paste the following text into the 'Install plugin' box:
+# .....................................................................
+
+YToxMTp7czo0OiJuYW1lIjtzOjE1OiJkemRfdHhwX3NlbGVjdDIiO3M6NjoiYXV0aG9yIjtz
+OjE2OiJSYWJhaCAoRHJhZ29uZHopIjtzOjEwOiJhdXRob3JfdXJpIjtzOjE3OiJodHRwczov
+L2l4LWR6LmNvbSI7czo3OiJ2ZXJzaW9uIjtzOjM6IjAuMSI7czoxMToiZGVzY3JpcHRpb24i
+O3M6NDE6IkFkZCBTZWxlY3QyIGxpYnJhcnkgdG8gY2F0ZWdvcnkgYWRtaW4gdGFiIjtzOjQ6
+ImNvZGUiO3M6NjE3OiIvLzw/cGhwDQoNCnJlZ2lzdGVyX2NhbGxiYWNrKCdkemRfdHhwX3Nl
+bGVjdDInLCAnY2F0ZWdvcnknLCAnJyk7DQpyZWdpc3Rlcl9jYWxsYmFjaygnZHpkX3R4cF9z
+ZWxlY3QyJywgJ2FydGljbGUnLCAnJyk7DQoNCmZ1bmN0aW9uIGR6ZF90eHBfc2VsZWN0Migk
+ZXZlbnQsICRzdGVwKSB7DQoNCiRzY2MgPSA8PDx1Zm9ybQ0KPGxpbmsgaHJlZj0iaHR0cHM6
+Ly9jZG4uanNkZWxpdnIubmV0L25wbS9zZWxlY3QyQDQuMS4wLXJjLjAvZGlzdC9jc3Mvc2Vs
+ZWN0Mi5taW4uY3NzIiByZWw9InN0eWxlc2hlZXQiIC8+DQo8c2NyaXB0IHNyYz0iaHR0cHM6
+Ly9jZG4uanNkZWxpdnIubmV0L25wbS9zZWxlY3QyQDQuMS4wLXJjLjAvZGlzdC9qcy9zZWxl
+Y3QyLm1pbi5qcyI+PC9zY3JpcHQ+DQo8c2NyaXB0Pg0KJChkb2N1bWVudCkucmVhZHkoZnVu
+Y3Rpb24oKSB7DQokKCcjYXJ0aWNsZV9jYXRlZ29yeV9wYXJlbnQnKS5zZWxlY3QyKCk7DQok
+KCdzZWxlY3Qjc2VjdGlvbicpLnNlbGVjdDIoKTsNCiQoJ3NlbGVjdCNjYXRlZ29yeS0xJyku
+c2VsZWN0MigpOw0KJCgnc2VsZWN0I2NhdGVnb3J5LTInKS5zZWxlY3QyKCk7DQp9KTsNCjwv
+c2NyaXB0Pg0KdWZvcm07DQoNCgllY2hvICRzY2M7DQoNCn0NCiI7czo0OiJ0eXBlIjtzOjE6
+IjMiO3M6NToib3JkZXIiO3M6MToiNSI7czo1OiJmbGFncyI7czoxOiIwIjtzOjQ6ImhlbHAi
+O3M6NTc4OiI8aDE+ZHpkX3R4cF9zZWxlY3QyPC9oMT4KCjxwPlRoaXMgcGx1Z2luIGFkZCB0
+aGUgc2VsZWN0MiBsaWJyYXJ5ICg8YSBocmVmPSJodHRwczovL3NlbGVjdDIub3JnL2dldHRp
+bmctc3RhcnRlZC9pbnN0YWxsYXRpb24iPmh0dHBzLy9zZWxlY3QyLm9yZy9nZXR0aW5nLXN0
+YXJ0ZWQvaW5zdGFsbGF0aW9uPC9hPikgdG8gdGV4dHBhdHRlcm4gYmFja2VuZCwgaXQgYWlt
+cyB0byBsZXQgdXNlIG9mIHNlYXJjaCBmdW5jdGlvbmFsaXR5IG9mIHNlbGVjdDIgbGlicmFy
+eSB0aGF0IGVhc2UgdG8gZmluZyBhIGNhdGVnb3J5IHdoZW4gdGhlcmVzIGlzIGEgYnVuY2gg
+b2YgdGhlbS48L3A+Cgo8cD5UaGUgcGx1Z2luIGluY2x1ZGUgdGhlIGxpYnJhcnkgYnkgdXNp
+bmcgdGhlaXIgY2RuLjwvcD4KCjxoMj5JbnN0YWxsYXRpb248L2gyPgoKPHA+QXMgdXN1YWwg
+cGx1Z2lucywgY29weS9wYXN0IHRoZSAudHh0IGZpbGUgb3IgdXBsb2FkIGl0IGFuZCBhY3Rp
+dmF0ZSBpdCwgdGhhdCBzIGl0LjwvcD4KCjxwPlRoZSBwbHVnaW4gc2hvdWxkIHdvcmsgd2l0
+aCBhbGwgbWFqb3IgdHhwIHZlcnNpb25zICh0ZXN0ZWQgb24gNC44LjcpPC9wPiI7czozOiJt
+ZDUiO3M6MzI6IjZhYmVjODRjMDhjZjg1NGE1ZmUyNTU2ODQ3NWJhZTRhIjt9
